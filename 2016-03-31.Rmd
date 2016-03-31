@@ -1,0 +1,148 @@
+---
+title: 'STA304'
+author: "Neil Montgomery"
+date: "2016-03-21"
+output: 
+  ioslides_presentation: 
+    css: 'styles.css' 
+    widescreen: true 
+    transition: 0.001
+---
+\newcommand{\E}[1]{E{\left(#1\right)}}
+\newcommand{\flist}[2]{\{#1_1, #1_2, \ldots, #1_#2\}}
+\newcommand{\fulist}[3]{\{#1_{{#2}1}, #1_{{#2}2}, \ldots, #1_{{#2}{#3}}\}}
+\renewcommand{\bar}[1]{\overline{#1}}
+\newcommand{\SE}[1]{\sqrt{\hat{V}(#1)}}
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# ratio and regression estimators
+
+## rats on drugs - comparing the estimators
+
+```{r, echo=FALSE, message=FALSE, results='asis'}
+library(rio)
+library(dplyr)
+N <- 763
+mu_x <- 17.2
+rats <- import("EXERCISE6.6.XLS", sheet="Orig")
+n <- nrow(rats)
+rats %>% 
+  lm(New ~ Standard, data=.) -> rats_lm
+MSE <- summary(rats_lm)$sigma^2
+b <- coefficients(rats_lm)[2]
+rats %>% 
+  summarize(y_bar = mean(New), 
+            B_ybar = 2*sqrt((1-n/N)*var(New)/n), 
+            x_bar = mean(Standard), 
+            r = y_bar/x_bar, 
+            y_r = r*mu_x, 
+            B_r = 2*sqrt((1-n/N)*(var(New - r*Standard)/n)), 
+            y_L = y_bar + b*(mu_x - x_bar),
+            B_L = 2*sqrt((1-n/N)*MSE/n)) -> rats_all
+
+rats_all %>% 
+  select(-x_bar, -r) %>% unlist %>% matrix(., 3, 2, byrow=T) %>% 
+  data.frame -> rats_table
+
+rownames(rats_table) <- c("SRS", "Ratio", "Regression")
+colnames(rats_table) <- c("Estimate", "$2\\sqrt{\\hat{V}}$")
+library(xtable)
+print.xtable(xtable(rats_table), type = "html", sanitize.colnames.function = function(x){x},
+             comment = FALSE)
+```
+
+Ratio and regression bounds very close - both far better than the SRS bound.
+
+## some theoretical notes and conclusions { .build }
+
+Ratio is best when there is a linear relationship through the origin (especially when the variance of $y$ is proportional to $x$).
+
+Regression is best when there is a linear relationship not through the origin. 
+
+Ratio estimator is *not* a special case of regression with intercept forced to be 0, since $r = \sum y_i \big/ \sum x_i$ while $\hat\beta_1 = \sum x_iy_i\big/\sum x_i^2$ in a "regression through the origin" model. 
+
+The so-called "difference estimator" is just the special case of a regression estimator with $b$ fixed in advance, typically to $b=1$. We will not consider this special case.
+
+# systematic random sampling
+
+## a new sampling design { .build }
+
+SRS and stratified sampling were examples of *sampling designs*. 
+
+Ratio and regression estimations were examples of calculation techniques in the special case where the population consisted of paired measurements $(y_i, x_i)$. The calculation techniques would apply to stratified sampling as well (at the stratum level).
+
+*Systematic sampling* is a new sampling design which can be useful in two seemingly "opposite" cases:
+
+1. Where there are known trends of certain types in the population (in which case systematic sampling can give improved estimators or population parameters.)
+
+2. Where there are no trends in a population and it is otherwise difficult to sample due to difficulties in making a frame.
+
+## systematic sampling { .build }
+
+A *1 in $k$ systematic sample with random start* works as follows:
+
+Population: $\flist{y}{N}$
+
+Choose first element of sample $y_1$ out of first $k$ elements, and then choose each $k^{th}$ element after that. 
+
+Can be implemented from a frame, or can be implemented in cases where the population presents itself sequentially (manufacturing, quality control, customer interviews). 
+
+Each element has an equal chance of being selected. But this is not a simple random sample. Why? (This was a question on Test 1.)
+
+## minor technical issue { .build }
+
+The sample size ends up being $n = N/k$. Alternatively, a sample size calculation to obtain $n$ implies $k = N/n$. 
+
+These quotients are not likely to be integers. So a systematic sample might result in a final sample size of $n-1$, $n$, or $n+1$, depending on the nature of the rounding error.
+
+But when $N$ and/or $n$ is not small, the "issue" is trivial, and negligible. And sample size calculations themselves are so dependent on the bound $B$ (arbitrarily chosen) and the population variance (either guessed or estimated with not very much precision), so it's nothing worth worrying about it practice.
+
+## analysis of a systematic sample { .build }
+
+The key question: is the order of the population related to the quantity of interest? Examples:
+
+Population: shoppers at a store. Order: the order in which they leave. Possible quantities of interest: satisfaction with the store (yes/no); how much purchased ($). 
+
+Population: farms. Order: size. Possible quantities of interest: how much livestock on the farm? revenues? return on investment?
+
+Population: items produced in a factory. Possible quantities of interest would include any matter related to *quality*. 
+
+## properties of a systematic random sample { .build }
+
+To estimate the population mean $\mu$ we use the sample mean of the elements in the systematic sample chosen:
+
+$$\bar y_{sy} = \frac{\sum_{i=1}^n y_i}{n}$$
+
+This is unbiased for $\mu$ (no matter what.)
+
+The variance of $\bar y_{sy}$ is the crux of the matter. It can be expressed as:
+
+$$V(\bar y_{sy}) = \frac{\sigma^2}{n}(1 + (n-1)\rho)$$
+
+where $\rho$ is the so-called "intra-cluster correlation coefficient". 
+
+## intra-cluster correlation coefficient
+
+Is bounded between $-1/(n-1)$ and 1 and measures the similarity of items within each possible systematic sample. 
+
+Interesting cases:
+
+$\rho \approx 1$ (the worst case for systematic sampling)
+
+$\rho \approx 0$ (in which case systematic sampling can be treated with SRS theory)
+
+$\rho < 0$ (in which case systematic sampling gives improved population parameter estimators, but can be tricky to measure this improvement)
+
+## randomly ordered population { .build }
+
+When the population is randomly ordered we can treat the systematic sample with SRS theory. 
+
+$$\bar y_{sy} = \frac{\sum_{i=1}^n y_i}{n}$$
+
+$$\hat V(\bar y_{sy}) = \left(1 - \frac{n}{N}\right)\frac{s^2}{n}$$
+
+Why is this a good estimator for the variance of $\bar y_{sy}$ when the population is randomly ordered?
+
