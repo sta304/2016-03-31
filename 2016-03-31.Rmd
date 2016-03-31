@@ -86,7 +86,7 @@ A *1 in $k$ systematic sample with random start* works as follows:
 
 Population: $\flist{y}{N}$
 
-Choose first element of sample $y_1$ out of first $k$ elements, and then choose each $k^{th}$ element after that. 
+Choose first element of sample (call it $y_1$ - usual abuse of notation) randomly out of the first $k$ elements, and then choose each $k^{th}$ element after that (until you reach the end of the population.)
 
 Can be implemented from a frame, or can be implemented in cases where the population presents itself sequentially (manufacturing, quality control, customer interviews). 
 
